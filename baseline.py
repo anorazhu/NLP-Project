@@ -6,8 +6,8 @@ import pandas as pd
 df = pd.read_csv("data.csv") 
 
 # Define features and labels
-X = df.drop(columns=['Recruiter Decision'])  # Use all columns except target
-y = df['Recruiter Decision']  # This is the label you're predicting
+X = df.drop(columns=['Recruiter Decision']) 
+y = df['Recruiter Decision']  
 
 # Define evaluation metrics
 scoring = ['accuracy', 'precision_macro', 'recall_macro', 'f1_macro']
