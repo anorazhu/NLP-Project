@@ -1,42 +1,24 @@
-import pandas as pd
-import numpy as np
-from sklearn.model_selection import cross_validate
 from sklearn.naive_bayes import MultinomialNB
-from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.model_selection import cross_validate
+from sklearn.metrics import make_scorer, accuracy_score, precision_score, recall_score, f1_score
+from data_cleaning import ResumeDataProcessor
+from scoring_metrics import scoring_metrics
 
-# Load the dataset
-df = pd.read_csv("data.csv")
+# Load and process the dataset
+processor = ResumeDataProcessor("data.csv")  # Update with your actual file path
+X, y, _, _, _, _ = processor.process()
 
-# Encode label: "Hire" = 1, "Reject" = 0
-df = df[df['Recruiter Decision'].notna()]
-df['label'] = df['Recruiter Decision'].map({'Hire': 1, 'Reject': 0})
-
-# Select the relevant text columns
-selected_columns = ['Skills', 'Education', 'Certifications', 'Job Role']
-
-# Initialize list to hold vectorized feature arrays
-vectorizers = {}
-vectors = []
-
-# Apply CountVectorizer separately on each text column
-for col in selected_columns:
-    vectorizer = CountVectorizer()
-    X_col = vectorizer.fit_transform(df[col].astype(str))  # Ensure column is string
-    vectorizers[col] = vectorizer
-    vectors.append(X_col.toarray())
-
-# Combine all vectorized features horizontally
-X_combined = np.concatenate(vectors, axis=1)
-y = df['label'].values
-
-# Define scoring metrics
-scoring_metrics = ['accuracy', 'precision', 'recall', 'f1']
-
-# Train and evaluate Multinomial Naive Bayes using 5-fold cross-validation
+# Train Naive Bayes classifier
 mnb = MultinomialNB()
-scores = cross_validate(mnb, X_combined, y, cv=5, scoring=scoring_metrics)
+scores = cross_validate(mnb, X, y, cv=5, scoring=scoring_metrics, return_train_score=False)
 
-# Print the results
-print("\nMultinomial Naive Bayes (Bag-of-Words) Performance:")
+# Print individual fold results
+print("\nMultinomial Naive Bayes (Bag-of-Words) Performance (Each Fold):")
 for metric in scoring_metrics:
-    print(f"{metric}: {scores['test_' + metric].mean():.4f}")
+    print(f"{metric}: {scores['test_' + metric]}")
+
+# Print average scores
+print("\nMultinomial Naive Bayes (Bag-of-Words) Average Performance:")
+for metric in scoring_metrics:
+    mean_score = scores['test_' + metric].mean()
+    print(f"{metric}: {mean_score:.4f}")
