@@ -56,4 +56,5 @@ class ResumeDataProcessor:
     def process(self):
         self.clean_list_fields()
         self.flatten_list_fields()
-        return self.prepare_features_and_labels()
+        X, y, X_train, X_test, y_train, y_test = self.prepare_features_and_labels()
+        return X, y, X_train, X_test, y_train, y_test, self.df

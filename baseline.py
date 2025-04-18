@@ -6,7 +6,7 @@ from scoring_metrics import scoring_metrics
 
 # Load and process the dataset
 processor = ResumeDataProcessor("data.csv")
-X, y, _, _, _, _ = processor.process()
+X, y, X_train, X_test, y_train, y_test, df = processor.process()
 
 # Run dummy classifiers
 for strategy in ["most_frequent", "stratified", "uniform"]:
