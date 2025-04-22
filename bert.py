@@ -16,7 +16,14 @@ _, _, _, _, _, _, df = processor.process()
 
 # Combine all text features into one "text" column
 feature_columns = df.columns[df.columns != 'job_category']
-df['text'] = df[feature_columns].astype(str).agg(' '.join, axis=1)
+df['text'] = df[feature_columns].apply(
+    lambda row: ' '.join(
+        str(val).replace('\n', ', ').strip() 
+        for val in row 
+        if pd.notna(val) and str(val).strip().lower() != 'nan'
+    ),
+    axis=1
+)
 
 # Encode labels
 label_encoder = LabelEncoder()
