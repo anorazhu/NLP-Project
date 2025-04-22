@@ -24,7 +24,7 @@ df['text'] = df['text'].str.strip().str.replace(r'\s+', ' ', regex=True)
 df['label'] = pd.Categorical(df['job_category']).codes
 
 # Sample 100 random resumes
-resume_sampled_df = df.sample(n=1000, random_state=42).reset_index(drop=True)
+resume_sampled_df = df.sample(n=100, random_state=42).reset_index(drop=True)
 y_sampled = resume_sampled_df["label"].tolist()
 
 # Few-shot intro
