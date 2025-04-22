@@ -22,6 +22,9 @@ df['text'] = df[feature_columns].astype(str).agg(' '.join, axis=1)
 label_encoder = LabelEncoder()
 df['label'] = label_encoder.fit_transform(df['job_category'])
 
+# Sampling with 100 
+df = df.sample(n=100, random_state=42).reset_index(drop=True)
+
 # Convert to Hugging Face dataset format
 resume_dataset = Dataset.from_pandas(df[['text', 'label']])
 resume_dataset = resume_dataset.train_test_split(test_size=0.2, seed=42)
@@ -56,8 +59,8 @@ def compute_metrics(eval_pred):
 training_args = TrainingArguments(
     output_dir="./bert_resume_results",
     learning_rate=2e-5,
-    per_device_train_batch_size=16,
-    per_device_eval_batch_size=16,
+    per_device_train_batch_size=4,
+    per_device_eval_batch_size=4,
     num_train_epochs=5,
     weight_decay=0.01,
     report_to="none"
@@ -76,3 +79,4 @@ trainer = Trainer(
 # Train and evaluate
 trainer.train()
 trainer.evaluate()
+print(trainer.evaluate())
