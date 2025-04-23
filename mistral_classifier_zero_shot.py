@@ -31,49 +31,50 @@ df['label'] = pd.Categorical(df['job_category']).codes
 
 # Sample 100 resumes 
 resume_sampled_df = df.sample(n=100, random_state=42).reset_index(drop=True)
+y_sampled = resume_sampled_df["label"].tolist()
 
 # Store predictions
 predictions = []
 
 # Loop through the sampled resumes
 for index, row in resume_sampled_df.iterrows():
-    # Create the prompt using the clean resume text
+    # Create the prompt using the text field from the current row
     prompt = (
-        "Based on the following resume details, predict the job category from the following options: "
-        "['Software & IT', 'Tech Engineering', 'Civil and Mechanical Engineering', "
-        "'Business Management', 'HR & Marketing'].\n"
+        "Based on the following resume details, predict the job category from the following options:\n"
+        "0: Business Management\n"
+        "1: Civil and Mechanical Engineering\n"
+        "2: HR & Marketing\n"
+        "3: Software & IT\n"
+        "4: Tech Engineering\n"
         f"Resume:\n{row['text']}\n"
-        "Answer with only the job category name."
+        "Answer with only the integer corresponding to the category."
     )
 
+    # Put it in MESSAGES format for Mistral
     MESSAGES = [{"role": "user", "content": prompt}]
 
-    try:
-        # Send to Mistral API
-        completion = client.chat.complete(
-            model=MODEL,
-            messages=MESSAGES
-        )
 
-        # Extract and store the prediction
-        response = completion.choices[0].message.content.strip()
-        print(f"\nPrompt:\n{prompt}\nPrediction:\n{response}")
-        predictions.append(response)
+    # Make the LLM request
+    completion = client.chat.complete(
+        model=MODEL,
+        messages=MESSAGES
+    )
+    response = completion.choices[0].message.content.strip()
 
-    except Exception as e:
-        print(f"Error at row {index}: {e}")
-        predictions.append("ERROR")
+    # Print prompt and response
+    print(f"Prompt:\n{prompt}")
+    print(f"Prediction:\n{completion.choices[0].message.content}")
 
-    # Wait to avoid hitting rate limits
+    # Save the response
+    match = re.search(r"\b([0-4])\b", response)
+    predictions.append(int(match.group(1)) if match else "ERROR")
+
+    # Pause to avoid hitting Mistral rate limits
     time.sleep(5)
 
-# Convert string predictions to label-encoded integers
-from sklearn.preprocessing import LabelEncoder
 
-encoded_predictions = processor.label_encoder.transform(predictions)
+# Turn the predictions into integers
+npredictions = [int(x) for x in predictions]
 
-# True labels from the sampled DataFrame
-true_labels = resume_sampled_df['label'].values
-
-# Print classification report
-print(classification_report(true_labels, encoded_predictions, target_names=processor.label_encoder.classes_))
+# print a classification report
+print(classification_report(npredictions, resume_sampled_df["label"]))

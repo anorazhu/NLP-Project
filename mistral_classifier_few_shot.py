@@ -25,7 +25,6 @@ df['label'] = pd.Categorical(df['job_category']).codes
 
 # Sample 100 random resumes
 resume_sampled_df = df.sample(n=100, random_state=42).reset_index(drop=True)
-y_sampled = resume_sampled_df["label"].tolist()
 
 # Few-shot intro
 few_shot_intro = (
@@ -35,7 +34,7 @@ few_shot_intro = (
     "2: HR & Marketing\n"
     "3: Software & IT\n"
     "4: Tech Engineering\n"
-    "Answer with only the integer corresponding to the category.\n\n"
+    "Answer with only the integer corresponding to the category."
     "Example 1:\n"
     "Skills: Python, JavaScript, SQL, REST APIs\n"
     "Degree: B.S. in Computer Science\n"
@@ -59,29 +58,42 @@ few_shot_intro = (
 # Send prompts to Mistral
 predictions = []
 for index, row in resume_sampled_df.iterrows():
+    # Combine all fields
     resume_details = (
         f"Skills: {row.get('skills', '')}\n"
-        f"Degree: {row.get('degree_names', '')}, {row.get('passing_years', '')}, {row.get('major_field_of_studies', '')}\n"
+        f"{row.get('degree_names', '')}, {row.get('passing_years', '')}, {row.get('major_field_of_studies', '')}\n"
         f"Positions: {row.get('positions', '')}\n"
         f"Certifications: {row.get('certification_providers', '')} - {row.get('certification_skills', '')}\n"
     )
+
+    # Build the prompt
     prompt = few_shot_intro + "\nResume:\n" + resume_details + "\nAnswer:"
+
+    # API message format
     MESSAGES = [{"role": "user", "content": prompt}]
-    
-    try:
-        completion = client.chat.complete(model=MODEL, messages=MESSAGES)
-        response = completion.choices[0].message.content.strip()
-        match = re.search(r"\b([0-4])\b", response)
-        predictions.append(int(match.group(1)) if match else "ERROR")
-    except Exception as e:
+
+    # Make API call
+    completion = client.chat.complete(
+        model=MODEL,
+        messages=MESSAGES
+    )
+
+    # Get response
+    response = completion.choices[0].message.content.strip()
+    print(f"\nPrompt:\n{prompt}\nResponse:\n{response}")
+
+    # Extract only the number (0-4) from response
+    match = re.search(r"\b([0-4])\b", response)
+    if match:
+        predictions.append(int(match.group(1)))
+    else:
+        print(f"Warning: Unexpected format at row {index}")
         predictions.append("ERROR")
-    
+
     time.sleep(5)
 
-# Filter predictions and compute evaluation
-valid_preds = [p for p in predictions if p != "ERROR"]
-valid_labels = [y_sampled[i] for i, p in enumerate(predictions) if p != "ERROR"]
+# Turn the predictions into integers
+npredictions = [int(x) for x in predictions]
 
-# Print classification report
-report = classification_report(valid_labels, valid_preds, output_dict=False)
-print(report)
+# print a classification report
+print(classification_report(resume_sampled_df["label"], npredictions))
