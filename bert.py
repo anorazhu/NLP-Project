@@ -5,62 +5,77 @@ from transformers import AutoTokenizer, DataCollatorWithPadding, AutoModelForSeq
 from sklearn.preprocessing import LabelEncoder
 from evaluate import load
 from data_cleaning import ResumeDataProcessor
-
+from sklearn.model_selection import train_test_split
 import os
+
 os.environ["WANDB_DISABLED"] = "true"
 
 # Load and preprocess data
 processor = ResumeDataProcessor("data.csv")
-_, _, _, _, _, _, df = processor.process()
+X, y, X_train, X_test, y_train, y_test, df = processor.process()
 
-
-# Combine all text features into one "text" column
-feature_columns = df.columns[df.columns != 'job_category']
-df['text'] = df[feature_columns].apply(
+# STEP 1: Combine text features into a single "text" column
+if 'text' in df.columns:
+    df = df.drop(columns=['text'])
+    
+X_df = df.drop(columns=["job_position_name", "job_category", "label"], errors='ignore').copy()
+df['text'] = X_df.apply(
     lambda row: ' '.join(
-        str(val).replace('\n', ', ').strip() 
-        for val in row 
+        str(val).replace('\n', ', ').strip()
+        for val in row
         if pd.notna(val) and str(val).strip().lower() != 'nan'
     ),
     axis=1
 )
+df['text'] = df['text'].str.strip().str.replace(r'\s+', ' ', regex=True)
 
-# Encode labels
-label_encoder = LabelEncoder()
-df['label'] = label_encoder.fit_transform(df['job_category'])
+# STEP 2: Encode labels
+df['label'] = pd.Categorical(df['job_category']).codes
 
-# Sampling with 100 
-df = df.sample(n=100, random_state=42).reset_index(drop=True)
+# STEP 3: Use sklearn to split into train/test
+df_train, df_test = train_test_split(df[['text', 'label']], test_size=0.2, random_state=34, stratify=df['label'])
 
-# Convert to Hugging Face dataset format
-resume_dataset = Dataset.from_pandas(df[['text', 'label']])
-resume_dataset = resume_dataset.train_test_split(test_size=0.2, seed=42)
+# STEP 4: Convert to Hugging Face Dataset format
+train_dataset = Dataset.from_pandas(df_train)
+test_dataset = Dataset.from_pandas(df_test)
 
-# Tokenizer and model
+# STEP 5: Sample 80 training and 20 testing examples
+# We are choosing a smaller sample because our program crashes, in the colab, we used the entire dataset
+train_df_sampled = df_train.sample(n=80, random_state=42).reset_index(drop=True)
+test_df_sampled = df_test.sample(n=20, random_state=42).reset_index(drop=True)
+
+# STEP 6: Convert sampled DataFrames to Hugging Face Datasets
+train_dataset = Dataset.from_pandas(train_df_sampled)
+test_dataset = Dataset.from_pandas(test_df_sampled)
+
+print(f"Training set size: {len(train_dataset)}")
+print(f"Test set size: {len(test_dataset)}")
+
+# Tokenizer
 tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
 
 def preprocess_function(examples):
     return tokenizer(examples["text"], truncation=True)
 
-tokenized_resume = resume_dataset.map(preprocess_function)
+tokenized_train = train_dataset.map(preprocess_function)
+tokenized_test = test_dataset.map(preprocess_function)
 
-# Padding and collator
+# Padding and data collator
 data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
 
-# Load model
-num_labels = len(label_encoder.classes_)
+# Model
+num_labels = len(df['label'].unique())
 model = AutoModelForSequenceClassification.from_pretrained("distilbert-base-uncased", num_labels=num_labels)
 
 # Metrics
 def compute_metrics(eval_pred):
-   load_accuracy = load("accuracy")
-   load_f1 = load("f1")
-
-   logits, labels = eval_pred
-   predictions = np.argmax(logits, axis=-1)
-   accuracy = load_accuracy.compute(predictions=predictions, references=labels)["accuracy"]
-   f1 = load_f1.compute(predictions=predictions, references=labels, average="macro")["f1"]
-   return {"accuracy": accuracy, "f1": f1}
+    load_accuracy = load("accuracy")
+    load_f1 = load("f1")
+    logits, labels = eval_pred
+    predictions = np.argmax(logits, axis=-1)
+    accuracy = load_accuracy.compute(predictions=predictions, references=labels)["accuracy"]
+    f1 = load_f1.compute(predictions=predictions, references=labels, average="macro")["f1"]
+    return {"accuracy": accuracy, "f1": f1}
 
 # Training arguments
 training_args = TrainingArguments(
@@ -73,17 +88,19 @@ training_args = TrainingArguments(
     report_to="none"
 )
 
+# Trainer
 trainer = Trainer(
     model=model,
     args=training_args,
-    train_dataset=tokenized_resume['train'],
-    eval_dataset=tokenized_resume['test'],
-    processing_class=tokenizer,
+    train_dataset=tokenized_train,
+    eval_dataset=tokenized_test,
+    tokenizer=tokenizer,
     data_collator=data_collator,
     compute_metrics=compute_metrics
 )
 
 # Train and evaluate
 trainer.train()
-trainer.evaluate()
-print(trainer.evaluate())
+evaluation_results = trainer.evaluate()
+evaluation_results
+print(evaluation_results)
