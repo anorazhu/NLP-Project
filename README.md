@@ -55,12 +55,15 @@ Implemented via `ResumeDataProcessor`:
 - Models:
   - Gaussian Naive Bayes
   - Support Vector Machine
+  - LinearSVC
+  - Logistic Regression
   - Feedforward Neural Network (FFNN)
   - Convolutional Neural Network (CNN)
 - Input: average or padded Word2Vec embeddings
 - Balanced training using class weights
 - Evaluation via accuracy, precision, recall, F1-score
 
+#### Recommendation: It is better to run Word2Vec-based models in the provided Google Colab notebook. We had to downgrade Python to version 3.11 to work with gensim and other required libraries, so using Colab helps avoid potential compatibility issues.
 ---
 
 ### 3. Transformer-Based Classification with DistilBERT (`bert.py`)
@@ -104,7 +107,9 @@ pip install -r requirements.txt
 ├── naivebayes.py
 ├── scoring_metrics.py
 ├── statistical_classification.py
+├── scoring_metrics.py
 ├── word2vec_representation_classification.py
+├── word2vec_statistical_classification.py
 ├── requirements.txt
 └── README.md
 ```
@@ -123,7 +128,9 @@ All models are evaluated using:
 
 ## Future Work
 
-- Hyperparameter tuning for neural networks  
-- More granular job category mapping  
-- Resume parsing from raw PDFs  
-- Zero-shot evaluation with newer LLMs
+- Improve overall classification accuracy across all job categories
+- Use BERT-based embeddings with k-NN to capture semantic similarity
+- Build a resume-to-job matching system using predicted job categories
+- Filter real job listings based on predicted category
+- Compare resume and job posting embeddings using cosine similarity
+- Rank job listings to recommend the best-fit positions for each resume
