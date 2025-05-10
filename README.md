@@ -82,16 +82,34 @@ Implemented via `ResumeDataProcessor`:
 - Includes examples in the prompt (few-shot learning)
 - Predictions are parsed and evaluated against true labels
 
+
 ---
 
-## Dependencies
+## How to Run
 
-All requirements are listed in `requirements.txt`.  
-Install with:
+### Prerequisites
+Ensure you have Python 3.11+ and install dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
+
+### Order to Run
+1. Preprocess data  
+   Run: `data_cleaning.py`  
+   Output: cleaned `df` and encoded features
+
+2. Statistical models (optional)  
+   Run: `naivebayes.py`, `statistical_classification.py`, `baseline.py`
+
+3. Word2Vec-based models  
+   Run: `word2vec_representation_classification.py` (recommended in Colab)
+
+4. BERT-based model  
+   Run: `bert.py`
+
+5. Mistral few-shot prompting  
+   Run: `mistral_classifier_few_shot.py` (requires Mistral API key)
 
 ---
 
@@ -99,17 +117,17 @@ pip install -r requirements.txt
 
 ```
 .
-├── baseline.py
-├── bert.py
-├── data.csv
-├── data_cleaning.py
-├── mistral_classifier_few_shot.py
-├── naivebayes.py
-├── scoring_metrics.py
-├── statistical_classification.py
-├── scoring_metrics.py
-├── word2vec_representation_classification.py
-├── word2vec_statistical_classification.py
+├── baseline.py                         # Dummy classifier benchmarks
+├── bert.py                             # DistilBERT classification
+├── data.csv                            # Resume dataset from Kaggle
+├── data_cleaning.py                    # ResumeDataProcessor class
+├── mistral_classifier_few_shot.py      # Mistral prompting models
+├── naivebayes.py                       # Multinomial NB with BoW
+├── scoring_metrics.py                  # Accuracy, Precision, Recall, F1
+├── statistical_classification.py       # LogisticRegression, LinearSVC
+├── word2vec_representation_classification.py  # W2V + ML/DL models
+├── word2vec_statistical_classification.py     # W2V + Logistic/SVM
+├── word2vec_colab.ipynb                # Colab version of Word2Vec pipeline
 ├── requirements.txt
 └── README.md
 ```
@@ -134,3 +152,11 @@ All models are evaluated using:
 - Filter real job listings based on predicted category
 - Compare resume and job posting embeddings using cosine similarity
 - Rank job listings to recommend the best-fit positions for each resume
+
+---
+
+## External Resources
+
+- **Pretrained Word2Vec**: [Google News Vectors](https://code.google.com/archive/p/word2vec/)  
+- **Mistral API**: [Mistral Docs](https://docs.mistral.ai/)  
+
