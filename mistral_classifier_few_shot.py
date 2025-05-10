@@ -8,7 +8,7 @@ from data_cleaning import ResumeDataProcessor
 from scoring_metrics import scoring_metrics
 
 # Initialize Mistral client
-client = Mistral(api_key="w6yh0tpXA6gK3p52Yt1vfzM8Yv74LkNX")  # Replace with your actual key
+client = Mistral(api_key="mistral_api_key")  # Replace with your actual key
 MODEL = "mistral-large-latest"
 
 # Load and process data
